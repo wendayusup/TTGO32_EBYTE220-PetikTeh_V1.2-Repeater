@@ -35,6 +35,9 @@ byte NodepetikA = 0xA0;
 String macAddress = "";
 const int maxindec = 5;
 /*------------List Mac-----------*/
+const int MAX_ENTRIES = 5;
+String entries[MAX_ENTRIES];
+int entrycount = 0;
 
 void setup()
 {
@@ -96,7 +99,6 @@ bool isMACAddressValidB(const String &mac)
 
   return isValid;
 }
-
 //------------Proc SendMessage-----------//
 void sendMessage(String outgoing, byte Noderepeater, byte othernode)
 {
@@ -154,13 +156,68 @@ void onReceive(int packetSize)
 
     if (isMACAddressValidA(macAddress) || isMACAddressValidB(macAddress))
     {
-      Serial.println("MAC Address valid :");
-      String macinput
-      
+      Serial.println("MAC Address valid !");
     }
     else
     {
       Serial.println(macAddress + ", Bukan MAC Address");
+    }
+
+    if (entrycount < MAX_ENTRIES)
+    {
+      macAddress.trim();
+
+      if (macAddress.length() == 0)
+      {
+        Serial.println("MAC Address Kosong");
+      }
+      else
+      {
+        bool isDuplicate = false;
+        int foundindex = -1;
+
+        for (int i = 0; i < entrycount; ++i)
+
+        {
+          if (entries[i].equals(macAddress))
+          {
+            isDuplicate = true;
+            foundindex = i;
+            break;
+          }
+        }
+
+        if (isDuplicate)
+        {
+          Serial.print("Mac Address ini sudah ada di indeks ke - ");
+          Serial.println(foundindex + 1);
+        }
+        else
+        {
+          entries[entrycount++] = macAddress;
+          Serial.print("Mac Address terdaftar di indeks ke- ");
+          Serial.println(entrycount);
+          Serial.println("");
+
+          if (entrycount < MAX_ENTRIES)
+          {
+            Serial.println("Menunggu Mac Address Baru...");
+          }
+        }
+      }
+    }
+    else
+    {
+      Serial.println("Daftar Mac Address masuk :");
+      for (int i = 0; i < entrycount; ++i)
+      {
+        Serial.print("Mac Address ke ");
+        Serial.print(i + 1);
+        Serial.print(": ");
+        Serial.println(entries[i]);
+      }
+      delay(1000);
+      entrycount = 0;
     }
 
     // Pesan yang dikirim untuk validasi bahhwa mac diterima
