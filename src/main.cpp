@@ -29,6 +29,8 @@ byte Noderepeater = 0xB0;
 byte NodeNetral = 0x00;
 byte NodepetikA = 0xA0;
 
+bool node1 = true;
+bool node2 = false;
 /*------------Source Mac Address-----------*/
 #include <esp_system.h>
 #include <regex.h>
@@ -39,10 +41,15 @@ const int MAX_ENTRIES = 5;
 String entries[MAX_ENTRIES];
 int entrycount = 0;
 
+/*------------Source EBYTE-----------*/
+HardwareSerial ebyteSerial(2);
+
 void setup()
 {
   /*------------PEMBACAAN SERIAL MAIN-----------*/
   Serial.begin(115200);
+  /*------------PEMBACAAN SERIAL MAIN-----------*/
+  ebyteSerial.begin(9600, SERIAL_8N1, 32, 33);
 
   /*------------PEMBACAAN MAC ADDRESS-----------*/
   uint8_t mac[6];
@@ -139,35 +146,16 @@ void onReceive(int packetSize)
     return;
   }
 
-  // if (incoming == "")
-  // {
-  //   Serial.println(incoming);
-  //   String macvalidation = "RPTA";
-  //   delay(100);
-  //   sendMessage(macvalidation, Noderepeater, NodepetikA);
+  
 
-  // }
-
-  if (incoming)
+  if (isMACAddressValidA(incoming) || isMACAddressValidB(incoming))
   {
-    macAddress = incoming;
-    Serial.print("Cek Pesan: ");
-    Serial.println(macAddress);
-
-    if (isMACAddressValidA(macAddress) || isMACAddressValidB(macAddress))
-    {
-      Serial.println("MAC Address valid !");
-    }
-    else
-    {
-      Serial.println(macAddress + ", Bukan MAC Address");
-    }
-
+    Serial.println("MAC Address valid ! ");
     if (entrycount < MAX_ENTRIES)
     {
-      macAddress.trim();
+      incoming.trim();
 
-      if (macAddress.length() == 0)
+      if (incoming.length() == 0)
       {
         Serial.println("MAC Address Kosong");
       }
@@ -179,7 +167,7 @@ void onReceive(int packetSize)
         for (int i = 0; i < entrycount; ++i)
 
         {
-          if (entries[i].equals(macAddress))
+          if (entries[i].equals(incoming))
           {
             isDuplicate = true;
             foundindex = i;
@@ -189,16 +177,19 @@ void onReceive(int packetSize)
 
         if (isDuplicate)
         {
-          Serial.print("Mac Address ini sudah ada di indeks ke - ");
+          Serial.print("Mac Address " + incoming + " sudah ada di indeks ke - ");
           Serial.println(foundindex + 1);
+          // Pesan yang dikirim untuk validasi bahhwa mac diterima
+          String macvalidation = String() + incoming + " " + (foundindex + 1);
+          delay(100);
+          sendMessage(macvalidation, Noderepeater, NodepetikA);
         }
         else
         {
-          entries[entrycount++] = macAddress;
-          Serial.print("Mac Address terdaftar di indeks ke- ");
+          entries[entrycount++] = incoming;
+          Serial.print(String() + "Mac Address " + incoming + " terdaftar di indeks ke- ");
           Serial.println(entrycount);
           Serial.println("");
-
           if (entrycount < MAX_ENTRIES)
           {
             Serial.println("Menunggu Mac Address Baru...");
@@ -219,11 +210,50 @@ void onReceive(int packetSize)
       delay(1000);
       entrycount = 0;
     }
+  }
+  else
+  {
+  }
 
-    // Pesan yang dikirim untuk validasi bahhwa mac diterima
-    String macvalidation = "RPTMACVALID";
-    delay(100);
-    sendMessage(macvalidation, Noderepeater, NodepetikA);
+  if (incoming.startsWith("MPGMBG0823001"))
+  {
+
+    if (node1)
+    {
+      Serial.println(incoming);
+      ebyteSerial.println(incoming);
+      delay(120);
+      String success = "success 1";
+      sendMessage(success, Noderepeater, NodepetikA);
+      node1 = false;
+      node2 = true;
+    }
+  }
+  else  {
+    node1 = false;
+    node2 = true;
+  }
+  {
+    
+  }
+
+  if (incoming.startsWith("MPGMBG0823002"))
+  {
+    if (node2)
+    {
+      Serial.println(incoming);
+      ebyteSerial.println(incoming);
+      delay(200);
+      String success = "success 2";
+      sendMessage(success, Noderepeater, NodepetikA);
+      node1 = true;
+      node2 = false;
+    }
+  }
+  else 
+  {
+    node1 = true;
+    node2 = false;
   }
 }
 
